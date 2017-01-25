@@ -7,6 +7,7 @@ import re
 import us
 import psycopg2
 import progressbar
+import addfips
 import numpy as np
 import pandas as pd
 
@@ -145,16 +146,55 @@ def make_table (filename, tablename, engine,
         data = data[cols]
     elif 'alcohol' in filename:
         data = data[data.columns.tolist ()[:-6]]
-        data = pd.melt (data, id_vars=data.columns.tolist ()[:2],
-                        value_vars=data.columns.tolist ()[2:],
+        data = data.rename (columns={'Location': 'County'})
+
+        widgets = [progressbar.Percentage (), progressbar.Bar (),
+                   progressbar.FormatLabel (
+                       'Processed: %(value)d Counties (in: %(elapsed)s)')]
+        pbar = progressbar.ProgressBar(widgets=widgets, maxval=len (data))
+        fips_getter = addfips.AddFIPS ()
+        fips_vals = []
+        for i in pbar (xrange (len (data))):
+            try:
+                fips = fips_getter.get_county_fips (data.iloc[i, :].loc['County'],
+                                                    data.iloc[i, :].loc['State'])
+            except:
+                fips = np.nan
+            fips_vals.append (fips)
+
+        data['FIPS'] = fips_vals
+
+        # reorder some columns
+        cols = data.columns.tolist ()
+        cols = cols[:2] + cols[-1:] + cols[2:-1]
+        data = data[cols]
+
+        data = pd.melt (data, id_vars=data.columns.tolist ()[:3],
+                        value_vars=data.columns.tolist ()[3:],
                         var_name=u'sample', value_name=u'percent')
         data['Year'] = data['sample'].apply (lambda x: x.split (' ', 1)[0])
         data['Gender'] = data['sample'].apply (lambda x: x.split (' ', 1)[1])
         data = data.drop (u'sample', 1)
+    elif 'SMOKING' in filename:
+        widgets = [progressbar.Percentage (), progressbar.Bar (),
+                   progressbar.FormatLabel (
+                       'Processed: %(value)d Counties (in: %(elapsed)s)')]
+        pbar = progressbar.ProgressBar(widgets=widgets, maxval=len (data))
+        fips_getter = addfips.AddFIPS ()
+        fips_vals = []
+        for i in pbar (xrange (len (data))):
+            try:
+                fips = fips_getter.get_county_fips (data.iloc[i, :].loc['county'],
+                                                    data.iloc[i, :].loc['state'])
+            except:
+                fips = np.nan
+            fips_vals.append (fips)
+
+        data['FIPS'] = fips_vals
 
         # reorder some columns
         cols = data.columns.tolist ()
-        cols = cols[:2] + cols[-2:] + cols[2:-2]
+        cols = cols[:2] + cols[-1:] + cols[2:-1]
         data = data[cols]
     elif 'cdc' in filename:
         data = data.drop ('theme_range', 1)
@@ -211,12 +251,16 @@ if __name__ == '__main__':
         # 'cdc_stroke_deaths_all_plus_indicators',
         # 'cdc_stroke_hosp_65plus_smoothed',
         # 'cdc_stroke_hosp_65plus',
+        # 'cdc_acute_myocard_infarc_deaths_all_smoothed',
+        # 'cdc_all_heart_dis_deaths_all_smoothed',
+        # 'cdc_card_dysrhyth_deaths_all_smoothed',
+        # 'cdc_cor_heart_dis_deaths_all_smoothed',
         # 'cdc_hypertension_deaths_all_smoothed',
         # 'cdc_hypertension_deaths_all',
         # 'cdc_hypertension_hosp_65plus_smoothed',
         # 'cdc_hypertension_hosp_65plus',
         # 'IHME_USA_HYPERTENSION_BY_COUNTY_2001_2009',
-        # 'IHME_US_COUNTY_TOTAL_AND_DAILY_SMOKING_PREVALENCE_1996_2012',
+        'IHME_US_COUNTY_TOTAL_AND_DAILY_SMOKING_PREVALENCE_1996_2012',
         # 'IHME_USA_OBESITY_PHYSICAL_ACTIVITY_2001_2011',
         # 'ihme_diabetes_diagnosed_1999_2012_Y2016M08D23',
         # 'ihme_diabetes_total_1999_2012_Y2016M08D23',
@@ -229,7 +273,7 @@ if __name__ == '__main__':
         # 'usda_food_insecurity_feb2014',
         # 'usda_food_restaurants_feb2014',
         # 'usda_food_stores_feb2014',
-        'pcen_v2015_y1015_txt',
+        # 'pcen_v2015_y1015_txt',
     ]
 
     for base in filename_bases:
