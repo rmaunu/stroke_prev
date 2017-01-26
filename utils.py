@@ -5,6 +5,66 @@ import os
 import socket
 import time
 
+features_key = {
+    'cnty_fips': 'FIPS',
+    'County': 'County',
+    'State': 'State',
+    'dm_prev_adj': 'Diagnosed Diabetes (%)',
+    'ob_prev_adj': 'Obesity Percentage (%)',
+    'ltpia_prev_adj': 'Physical Inactivity Percentage (%)',
+    'no_hsdip': 'No HS Diploma (%)',
+    'no_college': 'No College Diploma (%)',
+    'female_hd': 'Female-Headed Household (%)',
+    'foodstmp': 'SNAP Recipients (%)',
+    'home_val': 'Median Home Value ($1000s)',
+    'income': 'Median Household Income ($1000s)',
+    'GINI': 'GINI Coefficient (Income Inequality)',
+    'povpct': 'Population Below Poverty Line (%)',
+    'unemploy': 'Unemployment Rate (%)',
+    'perc_aian': 'American Indian/Alaska Native (%)',
+    'perc_api': 'Asian/Pacific Islander (%)',
+    'perc_black': 'African American (%)',
+    'perc_white': 'Non-Hispanic White (%)',
+    'perc_hisp': 'Hispanic (%)',
+    'perc_65up': '65yr or older (%)',
+    'total_pop': 'Total Population',
+    'airqual': 'Air Quality PM2.5',
+    'PARKS': 'Percentage of Population Living Within Half a Mile of a Park',
+    'sev_housing': 'Percentage of Households Living with Severe Housing Problems, 2008-2012',
+    'NCHS_collapse': 'Urban-Rural Status',
+    'htnadh_all': 'Blood-Pressure Medication Nonadherence (%)',
+    'htnadh_white': 'Blood-Pressure Medication Nonadherence, Non-Hispanic White (%)',
+    'htnadh_black': 'Blood-Pressure Medication Nonadherence, African American (%)',
+    'htnadh_hisp': 'Blood-Pressure Medication Nonadherence, Hispanic (%)',
+    'htnadh_api': 'Blood-Pressure Medication Nonadherence, Asian/Pacific Islander (%)',
+    'htnadh_aian': 'Blood-Pressure Medication Nonadherence, American Indian/Alaska Native (%)',
+    'diuradh': 'Diuretic Nonadherence (%)',
+    'rasadh': 'Renin-Angiotensin System Antagonist Nonadherence (%)',
+    'stg_hosp': 'Hospitals',
+    'stg_int_cr': 'Hospitals with Intensive-Care Unit',
+    'stg_rehab': 'Hospitals with Cardiac-Rehabilitation Unit',
+    'stg_emerg': 'Hospitals with Emergency Department',
+    'stg_neuro': 'Hospitals with Neurological Sevices',
+    'pharmpc': 'Pharmacies and Drug-Stores',
+    'prim_dr': 'Population per Primary-Care Physician',
+    'cvd_dr': 'Population per Cardiovascular Disease Physician',
+    'neuro_dr': 'Population per Neurologist',
+    'surg_dr': 'Population per Neurosurgeon',
+    'pctui': 'Percentage without Health Insurance, Under Age 65',
+    'medicaid': 'Medicade Eligible (%)',
+    'stroke_hosp': 'Stroke Hospitalization Rate (per 1000 Medicare Ben.)',
+    'stroke_death': 'Stroke Mortality Rate (per 100000)',
+    'all_heart_dis_death': 'Heart Disease Mortality Rate (per 100000)',
+    'cor_heart_dis_death': 'Coronary Heart Disease Mortality Rate (per 100000)',
+    'hyperten_death': 'Hypertension Mortality Rate (per 100000)',
+    'acute_myocard_infarc_death': 'Acute Myocardial Infarction Mortality Rate (per 100000)'
+}
+
+def strip_county_formatting (county):
+    return (county.replace ('-', ' ').replace ("'", "").replace (
+        ".", "").replace (",", "").lower ().replace ("saint", "st").replace (
+        " county", ""))
+
 
 def ensure_dir (dirname):
     """Make sure ``dirname`` exists and is a directory."""
