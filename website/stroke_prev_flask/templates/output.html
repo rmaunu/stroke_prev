@@ -47,43 +47,15 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li class="active"><a href="/input">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
     </nav>
 
     <br><br>
-
-    <div class="container">
-
-      <div class="starter-template">
-        <h3>Please enter a county and state: </h3>
-      </div>
-
-    <div class = "container">
-
-      <form  action="/output" method="GET">
-          <div class="form-group">
-            <label for="County">County:</label>
-            <input type="text" id="county" name="county" placeholder="e.g. Suffolk">
-          </div>
-          <div class="form-group">
-            <label for="State">State:</label>
-            <input type="text" id="state" name="state" placeholder="e.g. MA">
-          </div>
-
-        <div>
-          <button type="submit" class="btn btn-default btn-lg">Find my County!</button>
-        </div>
-      </form>
-    </div>
-    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-    <script src="../static/js/bootstrap.min.js"></script>
-
-  </div> <!-- /.container-->
 
     <div class="container">
       <div class="starter-template">
@@ -123,6 +95,79 @@
       <script src="static/js/bootstrap.min.js"></script>
 
     </div><!-- /.container -->
+
+    <div class = "container">
+      <div class = "container">
+        <h3>Go to another county and state: </h3>
+
+        <form action="/output" method="GET">
+          <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+          <select class="selectpicker" name="state" id="state">
+            <option value="0" selected disabled>State</option>
+            {% for vals in states %}
+            <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
+            {% endfor %}
+          </select>
+          <select name="county" id="county" class="selectpicker hidden">
+            <option value="0" selected disabled>County</option>
+            {% for vals in counties %}
+            <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
+            {% endfor %}
+          </select>
+
+          <div>
+            <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
+          </div>
+          <script type="text/javascript">
+            $("#state").change(function() {
+              if ($(this).data('options') == undefined) {
+                  $(this).data('options', $('#county option').clone());
+                }
+              var id = $(this).val();
+              var options = $(this).data('options').filter('[data-value=' + id + ']');
+              $('#county').html(options);
+            });
+          </script>
+          <script>
+            $("#state").change(function() {
+              // foo is the id of the other select box 
+              if ($(this).val() != "0") {
+                $("#county").removeClass('hidden');
+              }else{
+                $("#county").addClass('hidden');
+              } 
+            });
+          </script>
+          <script>
+            $("#state").change(function() {
+              validate();
+
+              // In case of validating specific fields
+              $('#state, #county').change(validate);
+            });
+
+            function validate(e){
+              if ( $('#state').val().length > 1  &&  $('#county').val().length > 1 )
+              {
+                $('#submit').prop('disabled', false);
+              } else {
+                $('#submit').prop('disabled', true);
+              }
+            }
+          </script>
+
+        </form>
+
+        <br><br>
+        <form action="/input">
+          <div>
+            <button class="btn btn-default btn-lg">Go back to map...</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="../static/js/bootstrap.min.js"></script>
 
 
     <!-- Bootstrap core JavaScript

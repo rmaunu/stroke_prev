@@ -43,13 +43,13 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">Stroke Risk</a>
+          <a class="navbar-brand" href="/">ReduceStroke</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li class="active"><a href="/input">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -206,30 +206,66 @@
 
         </script>
       </div>
+    </div>
 
-      <div class="starter-template">
-        <h3 align='left'>Go to data of specific county and state: </h3>
-      </div>
+    <div class="container">
 
-      <div class="container">
+      <h3 align='left'>Go to data of specific county and state: </h3>
+      <form  action="/output" method="GET">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+        <select class="selectpicker" name="state" id="state">
+          <option value="0" selected disabled>State</option>
+          {% for vals in states %}
+          <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
+          {% endfor %}
+        </select>
+        <select name="county" id="county" class="selectpicker hidden">
+          <option value="0" selected disabled>County</option>
+          {% for vals in counties %}
+          <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
+          {% endfor %}
+        </select>
+        <div>
+          <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
+        </div>
 
-        <form action="/output" method="GET">
-          <div class="form-group">
-            <label for="County">County:</label>
-            <input type="text" id="county" name="county" placeholder="e.g. Suffolk">
-          </div>
-          <div class="form-group">
-            <label for="State">State:</label>
-            <input type="text" id="state" name="state" placeholder="e.g. MA">
-          </div>
+        <script type="text/javascript">
+          $("#state").change(function() {
+            if ($(this).data('options') == undefined) {
+                $(this).data('options', $('#county option').clone());
+              }
+            var id = $(this).val();
+            var options = $(this).data('options').filter('[data-value=' + id + ']');
+            $('#county').html(options);
+          });
+        </script>
+        <script>
+          $("#state").change(function() {
+            // foo is the id of the other select box 
+            if ($(this).val() != "0") {
+              $("#county").removeClass('hidden');
+            }else{
+              $("#county").addClass('hidden');
+            } 
+          });
+        </script>
+        <script>
+          $("#state").change(function() {
+            validate();
 
-          {% if error %}
-          <p class=error><strong>Error:</strong> {{ error }}
-          {% endif %}
+            // In case of validating specific fields
+            $('#state, #county').change(validate);
+          });
 
-          <div>
-            <button type="submit" class="btn btn-default btn-lg">Go to county!</button>
-          </div>
+          function validate(e){
+            if ( $('#state').val().length > 1  &&  $('#county').val().length > 1 )
+            {
+              $('#submit').prop('disabled', false);
+            } else {
+              $('#submit').prop('disabled', true);
+            }
+          }
+        </script>
 
         </form>
       </div>

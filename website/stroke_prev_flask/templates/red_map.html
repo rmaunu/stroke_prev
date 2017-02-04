@@ -121,13 +121,14 @@
         var path = d3.geoPath();
 
         var x = d3.scaleLinear()
-            <!--.domain([0, 9])-->
             .domain([0, 3])
+            <!--.domain([0, 700])-->
             .rangeRound([600, 860]);
 
         var color = d3.scaleThreshold()
             <!--.domain(d3.range(0, 9, 1))-->
             .domain(d3.range(0, 3, 0.5))
+            <!--.domain(d3.range(0, 700, 100))-->
             .range(d3.schemeBlues[7]);
 
         var g = svg.append("g")
@@ -154,6 +155,7 @@
             .attr("fill", "#000")
             .attr("text-anchor", "start")
             .attr("font-weight", "bold")
+            <!--.text("Estimated stroke hosp. reduced (Total among Medicare ben.)");-->
             .text("Estimated stroke hosp. reduced (per 1000 Medicare ben.)");
 
         g.call(d3.axisBottom(x)
@@ -165,8 +167,9 @@
 
        function make_graph () {
             d3.queue()
-                .defer(d3.json, "https://d3js.org/us-10m.v1.json")
-                .defer(d3.csv, "/intervention_result", function(d) { 
+                <!--.defer(d3.json, "https://d3js.org/us-10m.v1.json")-->
+                .defer(d3.json, "static/us-10m.v2.json")
+                .defer(d3.csv, "/intervention_result?var={{ var }}&frac={{ frac }}", function(d) { 
                   strokes.set(d.fips, 
                       d3.map ()
                       .set ("county", d.county)
@@ -184,8 +187,10 @@
                     .data(topojson.feature(us, us.objects.counties).features)
                     .enter().append("path")
                     .attr("fill", function(d) { 
-                      if (typeof (strokes.get(d.id)) == "undefined" || 
-                          strokes.get(d.id).get("stroke_red") == "") return "#707070";
+                      if (typeof (strokes.get(d.id)) == "undefined") return "#707070";
+                      <!--else return color(d.stroke_red =-->
+                          <!--strokes.get(d.id).get("stroke_red") *-->
+                          <!--strokes.get(d.id).get("medicare_pop") / 1000.); })-->
                       else return color(d.stroke_red =
                           strokes.get(d.id).get("stroke_red")); })
                     .attr("d", path)

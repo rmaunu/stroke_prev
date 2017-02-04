@@ -119,31 +119,31 @@ def make_table (filename, tablename, engine,
         for col in data.columns[4:]:
             data[col] = data[col].apply (p2f).astype (float)
 
-        data = pd.melt (data, id_vars=data.columns.tolist ()[:4],
-                        value_vars=data.columns.tolist ()[4:],
-                        var_name=u'sample', value_name=u'percent')
-        data['Sample Type'] = data['sample'].apply (lambda x: x.split (',')[0])
-        data['Gender'] = data['sample'].apply (lambda x: x.split (',')[1])
-        data['Year'] = data['sample'].apply (lambda x: x.split (',')[2])
-        data = data.drop (u'sample', 1)
+        # data = pd.melt (data, id_vars=data.columns.tolist ()[:4],
+        #                 value_vars=data.columns.tolist ()[4:],
+        #                 var_name=u'sample', value_name=u'percent')
+        # data['Sample Type'] = data['sample'].apply (lambda x: x.split (',')[0])
+        # data['Gender'] = data['sample'].apply (lambda x: x.split (',')[1])
+        # data['Year'] = data['sample'].apply (lambda x: x.split (',')[2])
+        # data = data.drop (u'sample', 1)
 
-        # reorder some columns
-        cols = data.columns.tolist ()
-        cols = cols[:4] + cols[-3:] + cols[4:-3]
-        data = data[cols]
-    elif 'diabetes' in filename:
-        data = pd.melt (data, id_vars=data.columns.tolist ()[:2],
-                        value_vars=data.columns.tolist ()[2:],
-                        var_name=u'sample', value_name=u'percent')
-        data['Sample Type'] = data['sample'].apply (lambda x: x.split (',')[0])
-        data['Year'] = data['sample'].apply (lambda x: x.split (',')[1])
-        data['Gender'] = data['sample'].apply (lambda x: x.split (',')[2])
-        data = data.drop (u'sample', 1)
+        # # reorder some columns
+        # cols = data.columns.tolist ()
+        # cols = cols[:4] + cols[-3:] + cols[4:-3]
+        # data = data[cols]
+    # elif 'diabetes' in filename:
+    #     data = pd.melt (data, id_vars=data.columns.tolist ()[:2],
+    #                     value_vars=data.columns.tolist ()[2:],
+    #                     var_name=u'sample', value_name=u'percent')
+    #     data['sample type'] = data['sample'].apply (lambda x: x.split (',')[0])
+    #     data['year'] = data['sample'].apply (lambda x: x.split (',')[1])
+    #     data['gender'] = data['sample'].apply (lambda x: x.split (',')[2])
+    #     data = data.drop (u'sample', 1)
 
-        # reorder some columns
-        cols = data.columns.tolist ()
-        cols = cols[:2] + cols[-3:] + cols[2:-3]
-        data = data[cols]
+    #     # reorder some columns
+    #     cols = data.columns.tolist ()
+    #     cols = cols[:2] + cols[-3:] + cols[2:-3]
+    #     data = data[cols]
     elif 'alcohol' in filename:
         data = data[data.columns.tolist ()[:-6]]
         data = data.rename (columns={'Location': 'County'})
@@ -156,8 +156,18 @@ def make_table (filename, tablename, engine,
         fips_vals = []
         for i in pbar (xrange (len (data))):
             try:
-                fips = fips_getter.get_county_fips (data.iloc[i, :].loc['County'],
-                                                    data.iloc[i, :].loc['State'])
+                if data.iloc[i, :].loc['County'] == 'New York':
+                    fips = ''
+                elif data.iloc[i, :].loc['County'] == 'District of Columbia':
+                    fips = ''
+                elif len (data.iloc[i, :].loc['County'].split ()) > 1:
+                    fips = fips_getter.get_county_fips (data.iloc[i, :].loc['County'],
+                                                        data.iloc[i, :].loc['State'])
+                    if fips is None:
+                        fips = fips_getter.get_county_fips (data.iloc[i, :].loc['County'].split (',')[0],
+                                                            data.iloc[i, :].loc['State'])
+                else:
+                    fips = ''
             except:
                 fips = np.nan
             fips_vals.append (fips)
@@ -169,12 +179,12 @@ def make_table (filename, tablename, engine,
         cols = cols[:2] + cols[-1:] + cols[2:-1]
         data = data[cols]
 
-        data = pd.melt (data, id_vars=data.columns.tolist ()[:3],
-                        value_vars=data.columns.tolist ()[3:],
-                        var_name=u'sample', value_name=u'percent')
-        data['Year'] = data['sample'].apply (lambda x: x.split (' ', 1)[0])
-        data['Gender'] = data['sample'].apply (lambda x: x.split (' ', 1)[1])
-        data = data.drop (u'sample', 1)
+        # data = pd.melt (data, id_vars=data.columns.tolist ()[:3],
+        #                 value_vars=data.columns.tolist ()[3:],
+        #                 var_name=u'sample', value_name=u'percent')
+        # data['Year'] = data['sample'].apply (lambda x: x.split (' ', 1)[0])
+        # data['Gender'] = data['sample'].apply (lambda x: x.split (' ', 1)[1])
+        # data = data.drop (u'sample', 1)
     elif 'SMOKING' in filename:
         widgets = [progressbar.Percentage (), progressbar.Bar (),
                    progressbar.FormatLabel (
@@ -184,8 +194,18 @@ def make_table (filename, tablename, engine,
         fips_vals = []
         for i in pbar (xrange (len (data))):
             try:
-                fips = fips_getter.get_county_fips (data.iloc[i, :].loc['county'],
-                                                    data.iloc[i, :].loc['state'])
+                if data.iloc[i, :].loc['county'] == 'New York':
+                    fips = ''
+                elif data.iloc[i, :].loc['county'] == 'District of Columbia':
+                    fips = ''
+                elif len (data.iloc[i, :].loc['county'].split ()) > 1:
+                    fips = fips_getter.get_county_fips (data.iloc[i, :].loc['county'],
+                                                        data.iloc[i, :].loc['state'])
+                    if fips is None:
+                        fips = fips_getter.get_county_fips (data.iloc[i, :].loc['county'].split (',')[0],
+                                                            data.iloc[i, :].loc['state'])
+                else:
+                    fips = ''
             except:
                 fips = np.nan
             fips_vals.append (fips)
@@ -250,6 +270,12 @@ if __name__ == '__main__':
         # 'cdc_stroke_deaths_all_smoothed_plus_indicators',
         # 'cdc_stroke_deaths_all_plus_indicators',
         # 'cdc_stroke_hosp_65plus_smoothed',
+        # 'cdc_acute_myocard_infarc_hosp_65plus',
+        # 'cdc_all_heart_dis_hosp_65plus',
+        # 'cdc_card_dysrhyth_hosp_65plus',
+        # 'cdc_hypertension_hosp_65plus',
+        # 'cdc_cor_heart_dis_hosp_65plus',
+        # 'cdc_all_heart_dis_deaths_all',
         # 'cdc_stroke_hosp_65plus',
         # 'cdc_acute_myocard_infarc_deaths_all_smoothed',
         # 'cdc_all_heart_dis_deaths_all_smoothed',

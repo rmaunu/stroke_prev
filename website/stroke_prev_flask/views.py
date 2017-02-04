@@ -54,9 +54,40 @@ def strokes_page_fancy ():
     return render_template ('strokes.html', strokes=strokes)
 
 @app.route ('/')
+def landing_page ():
+    return render_template ("cover.html")
+
+@app.route ('/about')
+def about_page ():
+    return render_template ("about.html")
+
+@app.route ('/contact')
+def contact_page ():
+    return render_template ("contact.html")
+
 @app.route ('/input')
 def stroke_input ():
-    return render_template ("input.html")
+    query = """
+        SELECT "FIPS", "County", "State" FROM analysis_database_stroke ORDER BY "State", "County";
+        """
+
+    all_query_results = pd.read_sql_query (query, con)
+    all_query_results = all_query_results.loc[all_query_results['FIPS'].apply (int) < 60000, :]
+
+    states = []
+    counties = []
+    for i, row in all_query_results.iterrows ():
+        counties.append ([row['FIPS'][0:2], row['FIPS'], row['County']])
+        if not states or states[-1][0] != row['FIPS'][0:2]:
+            states.append ([row['FIPS'][0:2], row['State']])
+        else:
+            continue
+
+    print (counties)
+    return render_template ("input.html",
+                            counties=counties,
+                            states=states,
+                            )
 
 @app.route ('/output')
 def strokes_output ():
@@ -79,17 +110,23 @@ def strokes_output ():
     #     """
 
     query = """
-        SELECT * FROM analysis_database_stroke;
+        SELECT * FROM analysis_database_stroke ORDER BY "State", "County";
         """
 
     all_query_results=pd.read_sql_query (query, con)
+    all_query_results = all_query_results.loc[all_query_results['FIPS'].apply (int) < 60000, :]
+
+    states = []
+    counties = []
+    for i, row in all_query_results.iterrows ():
+        counties.append ([row['FIPS'][0:2], row['FIPS'], row['County']])
+        if not states or states[-1][0] != row['FIPS'][0:2]:
+            states.append ([row['FIPS'][0:2], row['State']])
+        else:
+            continue
 
     county_row = np.array ([
-        strip_county_formatting (county) == strip_county_formatting (county_query)
-        and state_full == state_query
-        for county_query, state_query
-        in izip (all_query_results['County'], all_query_results['State'])
-    ])
+        county == county_query for county_query in all_query_results['FIPS']])
     query_results=all_query_results.loc[county_row]
     print (query_results)
 
@@ -111,6 +148,8 @@ def strokes_output ():
         return render_template ("input.html", error=error)
 
     return render_template ("output.html",
+                            counties=counties,
+                            states=states,
                             strokes=strokes,
                             pred_result=pred_result,
                             imp_features=imp_features,
@@ -120,15 +159,24 @@ def strokes_output ():
 def intervention_result ():
     # pull 'stroke_month' from input field and store it
 
+    var = request.args.get ('var')
+    frac = float (request.args.get ('frac'))
+    error = None
+
     query = """
         SELECT * FROM analysis_database_stroke;
         """
 
     query_results=pd.read_sql_query (query, con)
 
+    if var not in query_results.columns:
+        error = 'Check your inputs'
+        return ("")
+
     pred_result = get_stroke_pred_counties (query_results)
-    pred_result_red = get_stroke_pred_counties (query_results,
-                                            {'airqual': 0.5})
+    pred_result_red = get_stroke_pred_counties (query_results, {var: frac})
+                                            # {'ltpia_prev_adj': 0.3})
+                                            # {'airqual': 0.5})
                                             # {'daily_mean_smoking_2011': 0.5})
     stroke_red = pred_result - pred_result_red
 
@@ -176,7 +224,9 @@ def stroke_data ():
 
 @app.route ('/reduce_map')
 def stroke_red_map ():
-    return render_template ("red_map.html")
+    var = request.args.get ('var')
+    frac = float (request.args.get ('frac'))
+    return render_template ("red_map.html", var=var, frac=frac)
 
 @app.route ('/map')
 def stroke_map ():
