@@ -292,7 +292,7 @@ def stroke_red_map ():
     error = None
 
     query = """
-        SELECT * FROM analysis_database_stroke;
+        SELECT * FROM analysis_database_stroke ORDER BY "State", "County";
         """
 
     query_results=pd.read_sql_query (query, con)
