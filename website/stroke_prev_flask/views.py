@@ -148,7 +148,8 @@ def county_data ():
     else:
         fig = figure(plot_width=600, plot_height=450)
         fig.scatter (plot_data[variable], plot_data['stroke_hosp'],
-                     alpha=0.3, fill_color=Spectral4[0], line_color=Spectral4[0])
+                     legend='US Counties', alpha=0.3, fill_color=Spectral4[0],
+                     line_color=Spectral4[0])
     idx = plot_data['FIPS'] == county
     plot_data = plot_data.loc[idx, :]
     try:
