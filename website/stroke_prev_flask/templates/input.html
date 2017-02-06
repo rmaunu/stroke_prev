@@ -21,6 +21,7 @@
     <!-- Custom styles for this template -->
     <link href="../static/css/starter-template.css" rel="stylesheet">
     <link href="../static/css/bootstrap-slider.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
@@ -61,22 +62,20 @@
         <div class="row">
           <div class="col-md-4">
             <h3 align='left'>Reduce stroke risk through:</h3>
-            <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-            <script src="../static/js/bootstrap.min.js"></script>
-            <script src="../static/js/bootstrap-slider.js"></script>
             <select class="selectpicker" name="variable" id="variable">
               <option value="0" selected disabled>Intervention</option>
               <option value="htnadh_all">Blood-Pressure Medication Nonadherence </option>
               <option value="daily_mean_smoking_2011">Daily Smoking Prevalence </option>
               <option value="ltpia_prev_adj">Physical Inactivity Prevalence </option>
             </select>
-
             <br>
             <br>
           </div>
           <div class="col-md-3">
             <br><br>
             <div class="form-group">
+              <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+              <script src="../static/js/bootstrap-slider.js"></script>
               Percent reduction: 
               <br>
               <input type="text" id="perc_red" name="perc_red" value="10"
@@ -125,11 +124,14 @@
 
       .counties {
         fill: none;
+        stroke: #222222;
+        stroke-linejoin: round;
+        stroke-width: 0.3px;
       }
 
       .states {
         fill: none;
-        stroke: #fff;
+        stroke: #000000;
         stroke-linejoin: round;
       }
 
@@ -165,65 +167,98 @@
 
       </style>
       <div class="container">
+        <div>
+          <select class="selectpicker" name="map_mode" id="map_mode" data-width="120px">
+            <option value="0" selected disabled>Map Mode</option>
+            <option value="rate">Rate</option>
+            <option value="total">Total</option>
+          </select>
+        </div>
         <svg width="960" height="600"></svg>
         <script src="https://d3js.org/d3.v4.min.js"></script>
         <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
         <script src="https://d3js.org/topojson.v2.min.js"></script>
         <!--<script src="static/js/map.js"></script>-->
         <script>
-        var svg = d3.select("svg"),
-            margin = {right: 10, left: 10},
-            width = +svg.attr("width"),
-            height = +svg.attr("height");
+        d3.select("#map_mode").on("change", make_graph);
 
-        var strokes = d3.map();
+        function make_graph () {
+          var svg = d3.select("svg"),
+              margin = {right: 10, left: 10},
+              width = +svg.attr("width"),
+              height = +svg.attr("height");
 
-        var county_data = d3.map();
+          svg.selectAll("*").remove();
 
-        var path = d3.geoPath();
+          var strokes = d3.map();
 
-        var x = d3.scaleLinear()
-            .domain([4, 20])
-            .rangeRound([600, 860]);
+          var county_data = d3.map();
 
-        var color = d3.scaleThreshold()
-            .domain(d3.range(4, 20, 2))
-            .range(d3.schemeReds[9]);
+          var path = d3.geoPath();
 
-        var g = svg.append("g")
-            .attr("class", "key")
-            .attr("transform", "translate(0,40)");
+          if (d3.select("#map_mode").property ("value") == "total") {
+            var x = d3.scaleLinear()
+                .domain([0, 400])
+                .rangeRound([530, 870]);
+            var color = d3.scaleThreshold()
+                .domain(d3.range(0, 400, 50))
+                .range(d3.schemeOrRd[9]);
+          } else {
+            var x = d3.scaleLinear()
+                .domain([4, 20])
+                .rangeRound([530, 870]);
+            var color = d3.scaleThreshold()
+                .domain(d3.range(4, 20, 2))
+                .range(d3.schemeOrRd[9]);
+          }
 
-        g.selectAll("rect")
-          .data(color.range().map(function(d) {
-              d = color.invertExtent(d);
-              if (d[0] == null) d[0] = x.domain()[0];
-              if (d[1] == null) d[1] = x.domain()[1];
-              return d;
-            }))
-          .enter().append("rect")
-            .attr("height", 8)
-            .attr("x", function(d) { return x(d[0]); })
-            .attr("width", function(d) { return x(d[1]) - x(d[0]); })
-            .attr("fill", function(d) { return color(d[0]); });
+          var g = svg.append("g")
+              .attr("class", "key")
+              .attr("transform", "translate(0,30)");
 
-        g.append("text")
-            .attr("class", "caption")
-            .attr("x", x.range()[0])
-            .attr("y", -6)
-            .attr("fill", "#000")
-            .attr("text-anchor", "start")
-            .attr("font-weight", "bold")
-            .text("Stroke hosp. rate (per 1000 Medicare ben., 2011-2013)");
+          g.selectAll("rect")
+            .data(color.range().map(function(d) {
+                d = color.invertExtent(d);
+                if (d[0] == null) d[0] = x.domain()[0];
+                if (d[1] == null) d[1] = x.domain()[1];
+                return d;
+              }))
+            .enter().append("rect")
+              .attr("height", 12)
+              .attr("x", function(d) { return x(d[0]); })
+              .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+              .attr("fill", function(d) { return color(d[0]); });
 
-        g.call(d3.axisBottom(x)
-            .tickSize(13)
-            .tickFormat(function(x, i) { return i ? x : x; })
-            .tickValues(color.domain()))
-          .select(".domain")
-            .remove();
+          if (d3.select("#map_mode").property ("value") == "total") {
+            g.append("text")
+                .attr("class", "caption")
+                .attr("x", x.range()[0])
+                .attr("y", -6)
+                .attr("fill", "#000")
+                .attr("text-anchor", "start")
+                .attr("font-weight", "bold")
+                .style("font-size", "15px")
+                .text("Stroke hosp. rate (total Medicare ben., 2011-2013)");
+          } else {
+            g.append("text")
+                .attr("class", "caption")
+                .attr("x", x.range()[0])
+                .attr("y", -6)
+                .attr("fill", "#000")
+                .attr("text-anchor", "start")
+                .attr("font-weight", "bold")
+                .style("font-size", "15px")
+                .text("Stroke hosp. rate (per 1000 Medicare ben., 2011-2013)");
+          }
 
-       function make_graph () {
+          g.call(d3.axisBottom(x)
+              .tickSize(20)
+              .tickFormat(function(x, i) { return i ? x : x; })
+              .tickValues(color.domain()))
+              .style("font-size", "15px")
+              .select(".domain")
+              .remove();
+
             d3.queue()
                 .defer(d3.json, "https://d3js.org/us-10m.v1.json")
                 <!--.defer(d3.csv, "/map_data", function(d) { -->
@@ -239,26 +274,48 @@
             function ready(error, us) {
                 if (error) throw error;
 
-                svg.append("g")
-                    .attr("class", "counties")
-                    .selectAll("path")
-                    .data(topojson.feature(us, us.objects.counties).features)
-                    .enter().append("path")
-                    .attr("fill", function(d) { 
-                      if (typeof (strokes.get(d.id)) == "undefined" || 
-                          strokes.get(d.id).get("stroke_hosp") == "") return "#707070";
-                      else return color(d.stroke_hosp = strokes.get(d.id).get("stroke_hosp")); })
-                    .attr("d", path)
-                    .append("title")
-                    .text(function(d) { 
-                      if (typeof (strokes.get(d.id)) != "undefined") 
-                        return strokes.get(d.id).get("county") + " - " +
-                          strokes.get(d.id).get("state") + "\n" + d.stroke_hosp;
-                      else return "";})
+                if (d3.select("#map_mode").property ("value") == "total") {
+                  svg.append("g")
+                      .attr("class", "counties")
+                      .selectAll("path")
+                      .data(topojson.feature(us, us.objects.counties).features)
+                      .enter().append("path")
+                      .attr("fill", function(d) { 
+                        if (typeof (strokes.get(d.id)) == "undefined" || 
+                          strokes.get(d.id).get("stroke_hosp") == "") return "#e0e0e0";
+                        else return color(d.stroke_hosp =
+                            strokes.get(d.id).get("stroke_hosp") *
+                            strokes.get(d.id).get("medicare_pop") / 1000.); })
+                      .attr("d", path)
+                      .append("title")
+                      .text(function(d) { 
+                        if (typeof (strokes.get(d.id)) != "undefined") 
+                          return strokes.get(d.id).get("county") + " - " +
+                            strokes.get(d.id).get("state") + "\n" + d.stroke_hosp;
+                        else return "";})
+                } else {
+                  svg.append("g")
+                      .attr("class", "counties")
+                      .selectAll("path")
+                      .data(topojson.feature(us, us.objects.counties).features)
+                      .enter().append("path")
+                      .attr("fill", function(d) { 
+                        if (typeof (strokes.get(d.id)) == "undefined" || 
+                          strokes.get(d.id).get("stroke_hosp") == "") return "#e0e0e0";
+                        else return color(d.stroke_hosp = strokes.get(d.id).get("stroke_hosp")); })
+                      .attr("d", path)
+                      .append("title")
+                      .text(function(d) { 
+                        if (typeof (strokes.get(d.id)) != "undefined") 
+                          return strokes.get(d.id).get("county") + " - " +
+                            strokes.get(d.id).get("state") + "\n" + d.stroke_hosp;
+                        else return "";})
+                }
 
                 svg.append("path")
                     .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
                     .attr("class", "states")
+                    .attr("stroke", "#333")
                     .attr("d", path);
 
             };
@@ -273,23 +330,26 @@
     <div class="container">
       <h3 align='left'>Go to data of specific county and state: </h3>
       <form  action="/county" method="GET">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
         <select class="selectpicker" name="state" id="state">
           <option value="0" selected disabled>State</option>
           {% for vals in states %}
           <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
           {% endfor %}
         </select>
-        <select name="county" id="county" class="selectpicker hidden">
+        <select name="county" id="county" class="selectpicker">
           <option value="0" selected disabled>County</option>
           {% for vals in counties %}
           <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
           {% endfor %}
         </select>
+        <script>
+          $( document ).ready(function() {
+            $("#county").selectpicker ('hide');
+          });
+        </script>
         <div>
           <button id="submit2" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
         </div>
-
         <script type="text/javascript">
           $("#state").change(function() {
             if ($(this).data('options') == undefined) {
@@ -302,11 +362,12 @@
         </script>
         <script>
           $("#state").change(function() {
-            // foo is the id of the other select box 
             if ($(this).val() != "0") {
-              $("#county").removeClass('hidden');
+              $("#county").selectpicker('show');
+              $("#county").selectpicker('refresh');
             }else{
-              $("#county").addClass('hidden');
+              $("#county").selectpicker ('hide');
+              $("#county").selectpicker('refresh');
             } 
           });
         </script>
@@ -330,15 +391,15 @@
 
       </form>
 
-      <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
       <script src="../static/js/bootstrap.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
 
     </div><!-- /.container -->
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
     <script src="../static/js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->

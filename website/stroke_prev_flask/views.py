@@ -11,12 +11,14 @@ from flask import request
 from stroke_prev_flask import app
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
+from collections import OrderedDict
 
 from bokeh.embed import components
-from bokeh.plotting import figure, output_file
+from bokeh.plotting import figure, output_file, ColumnDataSource
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
 from bokeh.palettes import Spectral4
+from bokeh.models import HoverTool, OpenURL, TapTool
 
 from model_stroke import get_stroke_pred, get_stroke_pred_counties, \
     get_max_features, cost_per_stroke
@@ -112,6 +114,9 @@ def stroke_input ():
 
 @app.route ('/county')
 def county_data ():
+    import us
+    import addfips
+
     # pull 'stroke_month' from input field and store it
     county = request.args.get ('county')
     state = request.args.get ('state')
@@ -125,6 +130,7 @@ def county_data ():
         return render_template ("input.html", error=error)
 
     state_full = us.states.lookup (state).name
+    fips_getter = addfips.AddFIPS ()
 
     # Grab everything, it's not too big
     # query = """
@@ -140,36 +146,77 @@ def county_data ():
     all_query_results = all_query_results.loc[all_query_results['FIPS'].apply (int) < 60000, :]
 
     plot_data = all_query_results.loc[:, ['FIPS', 'State', 'County', variable, 'stroke_hosp']].dropna ()
+    plot_data['FIPS_STATE'] = plot_data['State'].apply (fips_getter.get_state_fips)
+    TOOLS = "pan,wheel_zoom,box_zoom,reset,hover,tap,previewsave"
     if variable == 'log10_total_pop':
-        fig = figure(plot_width=600, plot_height=450, x_axis_type="log")
+        fig = figure(plot_width=600, plot_height=450, x_axis_type="log",
+                     tools=TOOLS)
         fig.scatter (10**plot_data[variable], plot_data['stroke_hosp'],
-                     alpha=0.3, fill_color=Spectral4[0],
+                     source=ColumnDataSource (plot_data),
+                     legend='US Counties', alpha=0.2, fill_color=Spectral4[0],
+                     size=5,
                      line_color=Spectral4[0])
     else:
-        fig = figure(plot_width=600, plot_height=450)
+        fig = figure(plot_width=600, plot_height=450, tools=TOOLS)
         fig.scatter (plot_data[variable], plot_data['stroke_hosp'],
-                     legend='US Counties', alpha=0.3, fill_color=Spectral4[0],
+                     source=ColumnDataSource (plot_data),
+                     legend='US Counties', alpha=0.2, fill_color=Spectral4[0],
+                     size=5,
                      line_color=Spectral4[0])
-    idx = plot_data['FIPS'] == county
-    plot_data = plot_data.loc[idx, :]
+
+    state_name = us.states.lookup (county[:2]).name
+    idx_state = plot_data['State'] == state_name
+    state_data = plot_data.loc[idx_state, :]
+    if variable == 'log10_total_pop':
+        fig.scatter (10**state_data[variable], state_data['stroke_hosp'],
+                     source=ColumnDataSource (state_data),
+                     legend='{0} Counties'.format (state_name),
+                     size=7,
+                     fill_color=Spectral4[2],
+                     line_color=Spectral4[2])
+    else:
+        fig.scatter (state_data[variable], state_data['stroke_hosp'],
+                     source=ColumnDataSource (state_data),
+                     legend='{0} Counties'.format (state_name),
+                     size=7,
+                     fill_color=Spectral4[2],
+                     line_color=Spectral4[2])
+
+    idx_county = plot_data['FIPS'] == county
+    county_data = plot_data.loc[idx_county, :]
     try:
         if variable == 'log10_total_pop':
-            fig.scatter (10**plot_data[variable].tolist ()[0],
-                         plot_data['stroke_hosp'].tolist ()[0],
+            fig.scatter (10**county_data[variable],
+                         county_data['stroke_hosp'],
+                         source=ColumnDataSource (county_data),
+                         size=10,
                          fill_color=Spectral4[-1], line_color=Spectral4[-1],
-                         legend='{0}, {1}'.format (plot_data['County'].tolist ()[0],
-                                                   plot_data['State'].tolist ()[0]))
+                         legend='{0}, {1}'.format (county_data['County'].tolist ()[0],
+                                                   county_data['State'].tolist ()[0]))
         else:
-            fig.scatter (plot_data[variable].tolist ()[0],
-                         plot_data['stroke_hosp'].tolist ()[0],
+            fig.scatter (county_data[variable],
+                         county_data['stroke_hosp'],
+                         source=ColumnDataSource (county_data),
+                         size=10,
                          fill_color=Spectral4[-1], line_color=Spectral4[-1],
-                         legend='{0}, {1}'.format (plot_data['County'].tolist ()[0],
-                                                   plot_data['State'].tolist ()[0]))
+                         legend='{0}, {1}'.format (county_data['County'].tolist ()[0],
+                                                   county_data['State'].tolist ()[0]))
     except:
         print ('No county data')
 
     fig.xaxis.axis_label = features_key[variable]
     fig.yaxis.axis_label = features_key['stroke_hosp']
+
+
+    hover = fig.select(dict(type=HoverTool))
+    hover.tooltips = OrderedDict([
+        ("(xx,yy)", "(@x, @y)"),
+        ("label", "@County" + ", " + "@State"),
+    ])
+
+    url = "/county?state=@FIPS_STATE&county=@FIPS&variable={0}".format (variable)
+    taptool = fig.select(type=TapTool)
+    taptool.callback = OpenURL(url=url)
 
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()

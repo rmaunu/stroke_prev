@@ -20,6 +20,7 @@
 
     <!-- Custom styles for this template -->
     <link href="starter-template.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/css/bootstrap-select.min.css">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
@@ -82,7 +83,7 @@
         stroke hospitalizations, per 1000 Medicare beneficiaries.</p>
 
         <p class="lead">The estimated cost for these hospitalizations is
-        {{pred_result[1]}} <a
+        {{pred_result[1]}} per year. <a
            href="https://www.hcup-us.ahrq.gov/reports/statbriefs/sb51.pdf">[ref]</a>.</p>
       </div>
      </div><!-- /.container -->
@@ -90,7 +91,7 @@
     <div class="container">
       <!-- A simple form for changing the graph -->
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-      <h3> Explore the county's data: </h3>
+      <h3> Explore the county's data (click on point to go to data of county): </h3>
       <select class="selectpicker" name="variable" id="variable">
         {% for feature in imp_features %}
           <option value="{{ feature[0] }}"> {{ feature[1] }}</option>
@@ -111,9 +112,6 @@
       <br>
       {{ plot_div|indent(4)|safe }}
 
-      <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-      <script src="static/js/bootstrap.min.js"></script>
-
     </div><!-- /.container -->
 
     <div class = "container">
@@ -121,19 +119,23 @@
         <h3>Go to another county and state: </h3>
 
         <form action="/county" method="GET">
-          <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
           <select class="selectpicker" name="state" id="state">
             <option value="0" selected disabled>State</option>
             {% for vals in states %}
             <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
             {% endfor %}
           </select>
-          <select name="county" id="county" class="selectpicker hidden">
+          <select name="county" id="county" class="selectpicker">
             <option value="0" selected disabled>County</option>
             {% for vals in counties %}
             <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
             {% endfor %}
           </select>
+          <script>
+            $( document ).ready(function() {
+              $("#county").selectpicker ('hide');
+            });
+          </script>
 
           <div>
             <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
@@ -150,11 +152,12 @@
           </script>
           <script>
             $("#state").change(function() {
-              // foo is the id of the other select box 
               if ($(this).val() != "0") {
-                $("#county").removeClass('hidden');
+                $("#county").selectpicker('show');
+                $("#county").selectpicker('refresh');
               }else{
-                $("#county").addClass('hidden');
+                $("#county").selectpicker ('hide');
+                $("#county").selectpicker('refresh');
               } 
             });
           </script>
@@ -186,14 +189,14 @@
         </form>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
     <script src="../static/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>
 
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
     <script src="../static/js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
