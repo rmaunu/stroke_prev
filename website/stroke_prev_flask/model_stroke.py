@@ -46,7 +46,7 @@ def get_stroke_pred (county_data):
     result = []
     result.append ('{0:.1f}'.format (pred_hosp))
     result.append ('${0:,d}'.format (
-        int (pred_hosp / 1000. * county_data.iloc[0, :].loc['total_pop'] *
+        int (pred_hosp / 1000. * 10**county_data.iloc[0, :].loc['log10_total_pop'] *
              county_data.iloc[0, :].loc['perc_65up'] / 100. * cost_per_stroke)
              / 10000 * 10000))
 
@@ -114,8 +114,8 @@ def get_max_features (county_data, all_data, target_key='stroke_hosp'):
     county_data_ana = county_data_ana[model_features_final]
 
     imp_features = []
-    imp_features.append ((utils.features_key[target_key],
-                          '{0:.0f}'.format (float ((y_all > y_county).sum ()) / len (y_all) * 100)))
+    # imp_features.append ((target_key, utils.features_key[target_key],
+                          # '{0:.0f}'.format (float ((y_all > y_county).sum ()) / len (y_all) * 100)))
 
     xgb_imp = model.booster().get_score (importance_type='weight')  # XGBoost model
     total_splits = 0
@@ -132,11 +132,11 @@ def get_max_features (county_data, all_data, target_key='stroke_hosp'):
     xgb_vals = np.array (xgb_vals)
 
     # for idx in np.abs (model.coef_).argsort ()[::-1][:10]:
-    for idx in xgb_vals.argsort ()[::-1][:10]:
+    for idx in xgb_vals.argsort ()[::-1][:15]:
         key = xgb_keys[idx]
         x_county = county_data_ana.iloc[0, :][key]
         imp_features.append (
-            (utils.features_key[key], '{0:.0f}'.format (float ((all_data_ana.loc[:, key] < x_county).sum ()) / len (y_all) * 100)))
+            (key, utils.features_key[key], '{0:.0f}'.format (float ((all_data_ana.loc[:, key] < x_county).sum ()) / len (y_all) * 100)))
     # try:
     #     for idx in np.abs (model.coef_).argsort ()[::-1][:10]:
     #         x_county = county_data_ana[0, idx]

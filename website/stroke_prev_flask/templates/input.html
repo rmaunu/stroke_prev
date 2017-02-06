@@ -20,6 +20,7 @@
 
     <!-- Custom styles for this template -->
     <link href="../static/css/starter-template.css" rel="stylesheet">
+    <link href="../static/css/bootstrap-slider.css" rel="stylesheet">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
@@ -54,6 +55,67 @@
         </div><!--/.nav-collapse -->
       </div>
     </nav>
+
+    <div class="container">
+      <form  action="/reduce_map" method="GET">
+        <div class="row">
+          <div class="col-md-4">
+            <h3 align='left'>Reduce stroke risk through:</h3>
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+            <script src="../static/js/bootstrap.min.js"></script>
+            <script src="../static/js/bootstrap-slider.js"></script>
+            <select class="selectpicker" name="variable" id="variable">
+              <option value="0" selected disabled>Intervention</option>
+              <option value="htnadh_all">Blood-Pressure Medication Nonadherence </option>
+              <option value="daily_mean_smoking_2011">Daily Smoking Prevalence </option>
+              <option value="ltpia_prev_adj">Physical Inactivity Prevalence </option>
+            </select>
+
+            <br>
+            <br>
+          </div>
+          <div class="col-md-3">
+            <br><br>
+            <div class="form-group">
+              Percent reduction: 
+              <br>
+              <input type="text" id="perc_red" name="perc_red" value="10"
+              data-slider-id='ex1Slider' data-slider-min="0"
+              data-slider-max="100" data-slider-step="1"
+              data-slider-ticks="[0, 20, 40, 60, 80, 100]"
+              data-slider-ticks-labels='["0%", "20%", "40%", "60%", "80%", "100%"]'
+              data-slider-value="10"
+              /> 
+            </div>
+            <script type="text/javascript">
+              // With JQuery
+              $('#perc_red').slider({
+                  formatter: function (value) {
+                      return 'Current value: ' + value + '%';
+                  }
+              });
+            </script>
+            <style type="text/css">
+                #ex1Slider .slider-selection {
+                    background: #BABABA;
+                }
+            </style>
+          </div>
+          <div class="col-md-2">
+            <br><br>
+            <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Submit!</button>
+          </div>
+          <script>
+            $("#variable").change(function() {
+              if ( $('#variable').val().length > 1)
+                $('#submit').prop('disabled', false);
+              else 
+                $('#submit').prop('disabled', true);
+            });
+          </script>
+        </div>
+      </form>
+    </div>
 
     <br><br>
 
@@ -209,9 +271,8 @@
     </div>
 
     <div class="container">
-
       <h3 align='left'>Go to data of specific county and state: </h3>
-      <form  action="/output" method="GET">
+      <form  action="/county" method="GET">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
         <select class="selectpicker" name="state" id="state">
           <option value="0" selected disabled>State</option>
@@ -226,7 +287,7 @@
           {% endfor %}
         </select>
         <div>
-          <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
+          <button id="submit2" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
         </div>
 
         <script type="text/javascript">
@@ -260,22 +321,19 @@
           function validate(e){
             if ( $('#state').val().length > 1  &&  $('#county').val().length > 1 )
             {
-              $('#submit').prop('disabled', false);
+              $('#submit2').prop('disabled', false);
             } else {
-              $('#submit').prop('disabled', true);
+              $('#submit2').prop('disabled', true);
             }
           }
         </script>
 
-        </form>
-      </div>
+      </form>
 
       <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
       <script src="../static/js/bootstrap.min.js"></script>
 
-      </html>
     </div><!-- /.container -->
-
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
