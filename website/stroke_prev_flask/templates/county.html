@@ -80,7 +80,8 @@
 
       <div class="starter-template">
         <p class="lead">Based on county-level data, we expect {{pred_result[0]}}
-        stroke hospitalizations, per 1000 Medicare beneficiaries.</p>
+        +/- {{pred_error}} stroke hospitalizations, per 1000 Medicare
+        beneficiaries.</p>
 
         <p class="lead">The estimated cost for these hospitalizations is
         {{pred_result[1]}} per year. <a

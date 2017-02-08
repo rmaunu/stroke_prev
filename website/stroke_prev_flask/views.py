@@ -22,7 +22,7 @@ from bokeh.models import HoverTool, OpenURL, TapTool
 
 from model_stroke import get_stroke_pred, get_stroke_pred_counties, \
     get_max_features, cost_per_stroke
-from utils import strip_county_formatting, features_key
+from utils import strip_county_formatting, features_key, MODEL_RMSE
 
 # user = 'rmaunu'
 user = 'postgres'
@@ -263,6 +263,7 @@ def county_data ():
                             states=states,
                             strokes=strokes,
                             pred_result=pred_result,
+                            pred_error='{0:.2f}'.format (MODEL_RMSE),
                             imp_features=imp_features,
                             error=error)
 
@@ -290,6 +291,7 @@ def intervention_result ():
                                             # {'airqual': 0.5})
                                             # {'daily_mean_smoking_2011': 0.5})
     stroke_red = pred_result - pred_result_red
+    stroke_red[stroke_red < 0.] = 0
 
     strokes_data = []
     # for i in range (10):
@@ -357,7 +359,11 @@ def stroke_red_map ():
                                             # {'airqual': 0.5})
                                             # {'daily_mean_smoking_2011': 0.5})
     stroke_red = pred_result - pred_result_red
+    stroke_red[stroke_red < 0.] = 0
     total_reduce = (stroke_red * query_results['med_pop'] / 1000.).sum ()
+    total_reduce_err_sq = 2. * MODEL_RMSE**2 * (stroke_red * query_results['med_pop'] / 1000.)**2
+    total_reduce_err = np.sqrt (total_reduce_err_sq.sum ())
+    print ('Total stroke reduction:', total_reduce, '+/-', total_reduce_err)
     cost_save = total_reduce * cost_per_stroke
     total_reduce = '{0:.0f}'.format (total_reduce)
     cost_save = '{0:,d}'.format (int (cost_save) / 10000 * 10000)
@@ -390,6 +396,7 @@ def stroke_red_map ():
                             variable=variable,
                             variable_txt=variable_txt,
                             total_reduce=total_reduce,
+                            total_reduce_err='{0:.0f}'.format (total_reduce_err),
                             cost_save=cost_save,
                             perc_red=perc_red)
 

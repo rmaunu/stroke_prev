@@ -76,6 +76,8 @@ features_key = {
     'low_access_grocery_pct10': 'Population, low access to grocery store (%, 2010)'
 }
 
+MODEL_RMSE = 2.10  # XGBoost RMSE
+
 def strip_county_formatting (county):
     return (county.replace ('-', ' ').replace ("'", "").replace (
         ".", "").replace (",", "").lower ().replace ("saint", "st").replace (
