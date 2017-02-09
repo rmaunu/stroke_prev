@@ -10,7 +10,7 @@
     <meta name="author" content="">
     <link rel="icon" href="../../favicon.ico">
 
-    <title>County risk factors for stroke</title>
+    <title>Smarter stroke interventions</title>
 
     <!-- Bootstrap core CSS -->
     <link href="../static/css/bootstrap.min.css" rel="stylesheet">
@@ -50,7 +50,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">ReduceStroke</a>
+          <a class="navbar-brand" href="/">slash/stroke</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
@@ -62,134 +62,145 @@
       </div>
     </nav>
 
-    <br><br>
+    <br>
+    <br>
+    <br>
 
     <div class="container">
-      <div class="starter-template">
-        <p class="lead"><br>Below is the basic stroke data for your county.</p>
+      <div class="row">
+        <div class="col-md-7">
+          <!-- A simple form for changing the graph -->
+          <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+          <h3> Explore the data (click on point to go another county): </h3>
+          <select class="selectpicker" name="variable" id="variable">
+            {% for feature in imp_features %}
+              <option value="{{ feature[0] }}"> {{ feature[1] }}</option>
+            {% endfor %}
+          </select>
+          <script>
+            $("#variable").val ("{{ variable }}")
+          </script>
+          <script text="text/javascript">
+            $("#variable").change(function() {
+              var url = '/county?state=' + '{{ state_page }}' + '&county=' + '{{ county_page }}' + '&variable=' + $(this).val(); // get selected value
+              if (url) { // require a URL
+                window.location = url; // redirect
+              }
+              return false;
+            });
+          </script>
+          <br>
+          {{ plot_div|indent(4)|safe }}
+        </div>
+        <div class="col-md-3">
+          <br>
+          <br>
+          <br>
+          <br>
+          <table class="table table-hover">
+            <tr><th>County</th></tr>
+            {% for stroke in strokes %}
+            <tr><td>{{ stroke['county'] }}</td></tr>
+            {% endfor %}
+            <tr><th>State</th></tr>
+            {% for stroke in strokes %}
+            <tr><td>{{ stroke['state']}}</td></tr>
+            {% endfor %}
+            <tr><th>Num. Medicare Beneficiaries (Est.)</th></tr>
+            {% for stroke in strokes %}
+            <tr><td>{{ stroke['medicare_pop'] }}</td></tr>
+            {% endfor %}
+            <tr><th>Stroke Hospitalization Rate<br>(per 1000 Medicare Beneficiaries)</th></tr>
+            {% for stroke in strokes %}
+            <tr><td> {{ stroke['stroke_hosp'] }}</td></tr>
+            {% endfor %}
+            <tr><th>Model Prediction</th></tr>
+            {% for stroke in strokes %}
+            <tr><td> {{pred_result[0]}} +/- {{pred_error}}</td></tr>
+            {% endfor %}
+            <tr><th>Estimated hospitalization cost (total)</th></tr>
+            {% for stroke in strokes %}
+            <tr><td> {{pred_result[1]}}</td></tr>
+            {% endfor %}
+          </table>
+        </div>
       </div>
-
-      <table class="table table-hover">
-        <tr><th>County</th><th>State</th><th>Stroke Hosp. (per 1000 Medicare
-            Beneficiaries)</th><th>Num. Medicare Beneficiaries (Est.)</th></tr>
-        {% for stroke in strokes %}
-        <tr><td>{{ stroke['county'] }}</td><td>{{ stroke['state']}}</td><td> {{
-            stroke['stroke_hosp'] }}</td><td>{{ stroke['medicare_pop'] }}</td></tr>
-        {% endfor %}
-      </table>
-
-      <div class="starter-template">
-        <p class="lead">Based on county-level data, we expect {{pred_result[0]}}
-        +/- {{pred_error}} stroke hospitalizations, per 1000 Medicare
-        beneficiaries.</p>
-
-        <p class="lead">The estimated cost for these hospitalizations is
-        {{pred_result[1]}} per year. <a
-           href="https://www.hcup-us.ahrq.gov/reports/statbriefs/sb51.pdf">[ref]</a>.</p>
-      </div>
-     </div><!-- /.container -->
-
-    <div class="container">
-      <!-- A simple form for changing the graph -->
-      <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-      <h3> Explore the county's data (click on point to go to data of county): </h3>
-      <select class="selectpicker" name="variable" id="variable">
-        {% for feature in imp_features %}
-          <option value="{{ feature[0] }}"> {{ feature[1] }}</option>
-        {% endfor %}
-      </select>
-      <script>
-        $("#variable").val ("{{ variable }}")
-      </script>
-      <script text="text/javascript">
-        $("#variable").change(function() {
-          var url = '/county?state=' + '{{ state_page }}' + '&county=' + '{{ county_page }}' + '&variable=' + $(this).val(); // get selected value
-          if (url) { // require a URL
-            window.location = url; // redirect
-          }
-          return false;
-        });
-      </script>
-      <br>
-      {{ plot_div|indent(4)|safe }}
-
     </div><!-- /.container -->
 
-    <div class = "container">
-      <div class = "container">
-        <h3>Go to another county and state: </h3>
+    <div class="container">
+      <h3>Go to another county: </h3>
 
-        <form action="/county" method="GET">
-          <select class="selectpicker" name="state" id="state">
-            <option value="0" selected disabled>State</option>
-            {% for vals in states %}
-            <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
-            {% endfor %}
-          </select>
-          <select name="county" id="county" class="selectpicker">
-            <option value="0" selected disabled>County</option>
-            {% for vals in counties %}
-            <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
-            {% endfor %}
-          </select>
-          <script>
-            $( document ).ready(function() {
-              $("#county").selectpicker ('hide');
-            });
-          </script>
+      <form action="/county" method="GET">
+        <select class="selectpicker" name="state" id="state">
+          <option value="0" selected disabled>State</option>
+          {% for vals in states %}
+          <option value="{{ vals[0] }}" data-value="{{ vals[0] }}"> {{ vals[1] }}</option>
+          {% endfor %}
+        </select>
+        <select name="county" id="county" class="selectpicker">
+          <option value="0" selected disabled>County</option>
+          {% for vals in counties %}
+          <option value="{{ vals[1] }}" data-value="{{ vals[0] }}"> {{ vals[2] }}</option>
+          {% endfor %}
+        </select>
+        <script>
+          $( document ).ready(function() {
+            $("#county").selectpicker ('hide');
+          });
+        </script>
 
-          <div>
-            <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
-          </div>
-          <script type="text/javascript">
-            $("#state").change(function() {
-              if ($(this).data('options') == undefined) {
-                  $(this).data('options', $('#county option').clone());
-                }
-              var id = $(this).val();
-              var options = $(this).data('options').filter('[data-value=' + id + ']');
-              $('#county').html(options);
-            });
-          </script>
-          <script>
-            $("#state").change(function() {
-              if ($(this).val() != "0") {
-                $("#county").selectpicker('show');
-                $("#county").selectpicker('refresh');
-              }else{
-                $("#county").selectpicker ('hide');
-                $("#county").selectpicker('refresh');
-              } 
-            });
-          </script>
-          <script>
-            $("#state").change(function() {
-              validate();
-
-              // In case of validating specific fields
-              $('#state, #county').change(validate);
-            });
-
-            function validate(e){
-              if ( $('#state').val().length > 1  &&  $('#county').val().length > 1 )
-              {
-                $('#submit').prop('disabled', false);
-              } else {
-                $('#submit').prop('disabled', true);
+        <div>
+          <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Go to county!</button>
+        </div>
+        <script type="text/javascript">
+          $("#state").change(function() {
+            if ($(this).data('options') == undefined) {
+                $(this).data('options', $('#county option').clone());
               }
+            var id = $(this).val();
+            var options = $(this).data('options').filter('[data-value=' + id + ']');
+            $('#county').html(options);
+          });
+        </script>
+        <script>
+          $("#state").change(function() {
+            if ($(this).val() != "0") {
+              $("#county").selectpicker('show');
+              $("#county").selectpicker('refresh');
+            }else{
+              $("#county").selectpicker ('hide');
+              $("#county").selectpicker('refresh');
+            } 
+          });
+        </script>
+        <script>
+          $("#state").change(function() {
+            validate();
+
+            // In case of validating specific fields
+            $('#state, #county').change(validate);
+          });
+
+          function validate(e){
+            if ( $('#state').val().length > 1  &&  $('#county').val().length > 1 )
+            {
+              $('#submit').prop('disabled', false);
+            } else {
+              $('#submit').prop('disabled', true);
             }
-          </script>
+          }
+        </script>
 
-        </form>
+      </form>
 
-        <br><br>
-        <form action="/input">
-          <div>
-            <button class="btn btn-default btn-lg">Go back to map...</button>
-          </div>
-        </form>
-      </div>
+          <br><br>
+          <form action="/input">
+            <div>
+              <button class="btn btn-default btn-lg">Go back to map...</button>
+            </div>
+          </form>
     </div>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
     <script src="../static/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.2/js/bootstrap-select.min.js"></script>

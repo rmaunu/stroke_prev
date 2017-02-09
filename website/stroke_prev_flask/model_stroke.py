@@ -132,7 +132,7 @@ def get_max_features (county_data, all_data, target_key='stroke_hosp'):
     xgb_vals = np.array (xgb_vals)
 
     # for idx in np.abs (model.coef_).argsort ()[::-1][:10]:
-    for idx in xgb_vals.argsort ()[::-1][:15]:
+    for idx in xgb_vals.argsort ()[::-1]:
         key = xgb_keys[idx]
         x_county = county_data_ana.iloc[0, :][key]
         imp_features.append (
