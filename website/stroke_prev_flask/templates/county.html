@@ -114,9 +114,8 @@
             {% for stroke in strokes %}
             <tr><td> {{ stroke['stroke_hosp'] }}</td></tr>
             {% endfor %}
-            <tr><th>Model Prediction</th></tr>
             {% for stroke in strokes %}
-            <tr><td> {{pred_result[0]}} +/- {{pred_error}}</td></tr>
+            <tr><td>Model Prediction: {{pred_result[0]}} +/- {{pred_error}}</td></tr>
             {% endfor %}
             <tr><th>Estimated hospitalization cost (total)</th></tr>
             {% for stroke in strokes %}

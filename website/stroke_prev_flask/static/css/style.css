@@ -1,0 +1,8 @@
+.navbar-default {
+  background-color:teal;
+  background-image: none;
+  background-repeat: no-repeat;
+ }
+ .panel-default > .panel-heading {
+   background-color: red;
+ }

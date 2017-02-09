@@ -153,8 +153,8 @@ def county_data ():
     TOOLS = "pan,wheel_zoom,box_zoom,reset,hover,tap,previewsave"
     if variable == 'log10_total_pop':
         fig = figure(plot_width=450, plot_height=450, x_axis_type="log",
-                     tools=TOOLS, toolbar_location="above",
-                     x_axis_location=None, y_axis_location=None,)
+                     tools=TOOLS, toolbar_location=None,)
+                     # x_axis_location=None, y_axis_location=None,)
         fig.scatter (x={'field': 'total_pop', 'transform': Jitter(width=0.05)},
                      y={'field': 'stroke_hosp', 'transform': Jitter(width=0.05)},
                      source=ColumnDataSource (plot_data),
@@ -163,8 +163,8 @@ def county_data ():
                      line_color=Spectral4[0])
     else:
         fig = figure(plot_width=450, plot_height=450, tools=TOOLS,
-                     toolbar_location="above", x_axis_location=None,
-                     y_axis_location=None,)
+                     toolbar_location=None, )
+                     # x_axis_location=None, y_axis_location=None,)
         fig.scatter (x={'field': variable, 'transform': Jitter(width=0.05)},
                      y={'field': 'stroke_hosp', 'transform': Jitter(width=0.05)},
                      source=ColumnDataSource (plot_data),
@@ -268,13 +268,14 @@ def county_data ():
     if variable == 'log10_total_pop':
         ph = figure(toolbar_location=None, plot_width=fig.plot_width,
                     plot_height=200, x_range=fig.x_range, y_range=(0, hmax),
-                    min_border=10, min_border_left=50, y_axis_location="left",
-                    x_axis_type="log")
+                    min_border=10, min_border_left=50, x_axis_location=None,
+                    y_axis_location="left", x_axis_type="log")
     else:
         ph = figure(toolbar_location=None, plot_width=fig.plot_width,
                     plot_height=200, x_range=fig.x_range, y_range=(0, hmax),
-                    min_border=10, min_border_left=50, y_axis_location="left")
-    ph.xgrid.grid_line_color = None
+                    min_border=10, min_border_left=50, x_axis_location=None,
+                    y_axis_location="left")
+    # ph.xgrid.grid_line_color = None
     # ph.yaxis.major_label_orientation = np.pi/4
     # ph.background_fill_color = "#fafafa"
 
@@ -292,16 +293,17 @@ def county_data ():
             legend=False, line_color=Spectral4[-1], line_width=4)
 
     ph.xaxis.axis_label = features_key[variable]
-    ph.yaxis.axis_label = 'Count'
+    ph.yaxis.axis_label = 'Counties per Bin'
 
     vhist, vedges = np.histogram(plot_data['stroke_hosp'], bins=20)
     vzeros = np.zeros(len(vedges)-1)
     vmax = max(vhist)*1.1
 
-    pv = figure(toolbar_location=None, plot_width=200,
+    pv = figure(toolbar_location='right', plot_width=200,
                 plot_height=fig.plot_height, x_range=(0, vmax),
-                y_range=fig.y_range, min_border=10, y_axis_location="left")
-    pv.ygrid.grid_line_color = None
+                y_range=fig.y_range, min_border=10,
+                y_axis_location=None)
+    # pv.ygrid.grid_line_color = None
     # pv.xaxis.major_label_orientation = np.pi/4
 
     pv.quad(left=0, bottom=vedges[:-1], top=vedges[1:], right=vhist,
@@ -313,9 +315,10 @@ def county_data ():
            legend=False, line_color=Spectral4[-1], line_width=4)
 
     pv.yaxis.axis_label = features_key['stroke_hosp']
-    pv.xaxis.axis_label = 'Count'
+    pv.xaxis.axis_label = 'Counties per Bin'
 
-    layout = layouts.column(layouts.row(pv, fig), layouts.row(Spacer(width=200, height=200), ph))
+    # layout = layouts.column(layouts.row(pv, fig), layouts.row(Spacer(width=200, height=200), ph))
+    layout = layouts.column(layouts.row(ph, Spacer(width=200, height=200)), layouts.row(fig, pv))
     # layout = layouts.column(layouts.row(fig), layouts.row(ph))
 
     js_resources = INLINE.render_js()
