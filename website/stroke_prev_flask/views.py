@@ -153,8 +153,8 @@ def county_data ():
     TOOLS = "pan,wheel_zoom,box_zoom,reset,hover,tap,previewsave"
     if variable == 'log10_total_pop':
         fig = figure(plot_width=450, plot_height=450, x_axis_type="log",
-                     tools=TOOLS, toolbar_location=None,)
-                     # x_axis_location=None, y_axis_location=None,)
+                     tools=TOOLS, toolbar_location='above',
+                     x_axis_location=None, y_axis_location=None,)
         fig.scatter (x={'field': 'total_pop', 'transform': Jitter(width=0.05)},
                      y={'field': 'stroke_hosp', 'transform': Jitter(width=0.05)},
                      source=ColumnDataSource (plot_data),
@@ -163,8 +163,8 @@ def county_data ():
                      line_color=Spectral4[0])
     else:
         fig = figure(plot_width=450, plot_height=450, tools=TOOLS,
-                     toolbar_location=None, )
-                     # x_axis_location=None, y_axis_location=None,)
+                     toolbar_location='above',
+                     x_axis_location=None, y_axis_location=None,)
         fig.scatter (x={'field': variable, 'transform': Jitter(width=0.05)},
                      y={'field': 'stroke_hosp', 'transform': Jitter(width=0.05)},
                      source=ColumnDataSource (plot_data),
@@ -232,9 +232,8 @@ def county_data ():
                          legend='{0}, {1}'.format (county_data['County'].tolist ()[0],
                                                    county_data['State'].tolist ()[0]))
 
-    fig.xaxis.axis_label = features_key[variable]
-    fig.yaxis.axis_label = features_key['stroke_hosp']
-
+    # fig.xaxis.axis_label = features_key[variable]
+    # fig.yaxis.axis_label = features_key['stroke_hosp']
 
     hover = fig.select(dict(type=HoverTool))
     if variable == 'log10_total_pop':
@@ -268,12 +267,12 @@ def county_data ():
     if variable == 'log10_total_pop':
         ph = figure(toolbar_location=None, plot_width=fig.plot_width,
                     plot_height=200, x_range=fig.x_range, y_range=(0, hmax),
-                    min_border=10, min_border_left=50, x_axis_location=None,
+                    min_border=10, min_border_left=50, #x_axis_location=None,
                     y_axis_location="left", x_axis_type="log")
     else:
         ph = figure(toolbar_location=None, plot_width=fig.plot_width,
                     plot_height=200, x_range=fig.x_range, y_range=(0, hmax),
-                    min_border=10, min_border_left=50, x_axis_location=None,
+                    min_border=10, min_border_left=50, #x_axis_location=None,
                     y_axis_location="left")
     # ph.xgrid.grid_line_color = None
     # ph.yaxis.major_label_orientation = np.pi/4
@@ -299,10 +298,10 @@ def county_data ():
     vzeros = np.zeros(len(vedges)-1)
     vmax = max(vhist)*1.1
 
-    pv = figure(toolbar_location='right', plot_width=200,
+    pv = figure(toolbar_location=None, plot_width=200,
                 plot_height=fig.plot_height, x_range=(0, vmax),
-                y_range=fig.y_range, min_border=10,
-                y_axis_location=None)
+                y_range=fig.y_range, min_border=10,)
+                # y_axis_location=None)
     # pv.ygrid.grid_line_color = None
     # pv.xaxis.major_label_orientation = np.pi/4
 
@@ -317,8 +316,8 @@ def county_data ():
     pv.yaxis.axis_label = features_key['stroke_hosp']
     pv.xaxis.axis_label = 'Counties per Bin'
 
-    # layout = layouts.column(layouts.row(pv, fig), layouts.row(Spacer(width=200, height=200), ph))
-    layout = layouts.column(layouts.row(ph, Spacer(width=200, height=200)), layouts.row(fig, pv))
+    layout = layouts.column(layouts.row(pv, fig), layouts.row(Spacer(width=200, height=200), ph))
+    # layout = layouts.column(layouts.row(ph, Spacer(width=200, height=200)), layouts.row(fig, pv))
     # layout = layouts.column(layouts.row(fig), layouts.row(ph))
 
     js_resources = INLINE.render_js()

@@ -71,7 +71,9 @@
         <div class="col-md-7">
           <!-- A simple form for changing the graph -->
           <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-          <h3> Explore the data (click on point to go another county): </h3>
+          <h3> Explore the county data: </h3>
+          <p>(click on a point to go to another county) </p>
+          <br>
           <select class="selectpicker" name="variable" id="variable">
             {% for feature in imp_features %}
               <option value="{{ feature[0] }}"> {{ feature[1] }}</option>
@@ -93,9 +95,8 @@
           {{ plot_div|indent(4)|safe }}
         </div>
         <div class="col-md-3">
-          <br>
-          <br>
-          <br>
+          <br> <br> <br>
+          <br> <br> <br>
           <br>
           <table class="table table-hover">
             <tr><th>County</th></tr>
