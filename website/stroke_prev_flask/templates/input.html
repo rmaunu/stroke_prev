@@ -60,20 +60,9 @@
 
     <div class="container">
       <form  action="/reduce_map" method="GET">
+        <h3 align='left'>Reduce stroke incidence through:</h3>
         <div class="row">
-          <div class="col-md-4">
-            <h3 align='left'>Reduce stroke risk through:</h3>
-            <select class="selectpicker" name="variable" id="variable">
-              <option value="0" selected disabled>Intervention</option>
-              <option value="htnadh_all">Blood-Pressure Medication Nonadherence </option>
-              <option value="ltpia_prev_adj">Physical Inactivity Prevalence </option>
-              <option value="daily_mean_smoking_2011">Daily Smoking Prevalence </option>
-            </select>
-            <br>
-            <br>
-          </div>
           <div class="col-md-3">
-            <br>
             <div class="form-group">
               <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
               <script src="../static/js/bootstrap-slider.js"></script>
@@ -103,8 +92,17 @@
                 }
             </style>
           </div>
-          <div class="col-md-1">
-            <br><br>
+          <div class="col-md-3">
+            <br>
+            <select class="selectpicker" name="variable" id="variable">
+              <option value="0" selected disabled>Risk Factor</option>
+              <option value="htnadh_all">Blood-Pressure Medication Nonadherence </option>
+              <option value="ltpia_prev_adj">Physical Inactivity Prevalence </option>
+              <option value="daily_mean_smoking_2011">Daily Smoking Prevalence </option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <br>
             <button id="submit" type="submit" class="btn btn-default btn-lg" disabled>Submit!</button>
           </div>
           <script>
