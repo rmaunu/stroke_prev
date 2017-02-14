@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from itertools import izip
+
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.svm import SVR
@@ -17,6 +18,8 @@ from sklearn.cross_validation import train_test_split, KFold, cross_val_score
 from sklearn.preprocessing import StandardScaler, Imputer
 from sklearn.grid_search import GridSearchCV, RandomizedSearchCV
 from sklearn.feature_selection import f_regression, RFECV
+from sklearn.metrics import mean_squared_error
+
 from xgboost.sklearn import XGBRegressor
 
 from sqlalchemy import create_engine
@@ -56,13 +59,15 @@ MODEL_FEATURES = [
     'sev_housing',
     'NCHS_collapse',
     'htnadh_all',
+    'diuradh_norm',
+    'rasadh_norm',
+    # 'diuradh',
+    # 'rasadh',
     # 'htnadh_white',
     # 'htnadh_black',
     # 'htnadh_hisp',
     # 'htnadh_api',
     # 'htnadh_aian',
-    # 'diuradh',
-    # 'rasadh',
     # 'stg_hosp',
     # 'stg_int_cr',
     # 'stg_rehab',
@@ -84,11 +89,14 @@ MODEL_FEATURES = [
     # 'acute_myocard_infarc_hosp',
     # 'heart_hosp',
     # 'heart_death',
-    # 'any_alcohol_2011',
-    'heavy_alcohol_2011',
     # 'binge_alcohol_2011',
-    'daily_mean_smoking_2011',
-    # 'total_mean_smoking_2011',
+    # 'heavy_alcohol_2011',
+    'any_alcohol_2011',
+    'binge_alcohol_2011_norm',
+    'heavy_alcohol_2011_norm',
+    # 'daily_mean_smoking_2011',
+    'daily_mean_smoking_2011_norm',
+    'total_mean_smoking_2011',
     'snap_redemp_per_store_2012',
     # 'pct_diabetes_adults_2010',
     'pct_obese_adults_2013',
@@ -96,11 +104,15 @@ MODEL_FEATURES = [
     'ers_nat_amenity_index_1999',
     'food_insec_house_pct_10_12',
     'low_access_food_pct10',
-    'low_access_grocery_pct10',
     # 'low_access_food_low_inc_pct10',
     # 'low_access_food_snr_pct10',
     # 'low_access_food_no_car_pct10',
     # 'very_low_food_insec_house_pct_10_12',
+    'low_access_grocery_pct10',
+    'low_access_food_low_inc_pct10_norm',
+    'low_access_food_snr_pct10_norm',
+    # 'low_access_food_no_car_pct10_norm',
+    # 'very_low_food_insec_house_pct_10_12_norm',
 ]
 
 CDC_SKIP_COLS = ['FIPS', 'County', 'State',  # Labels
@@ -313,7 +325,7 @@ FROM {0};
         elif table == tables[4]:
             sql_query = """
 SELECT "FIPS",
-"GROCPTH12" AS "low_access_grocery_pct10"
+"GROCPTH12" AS "grocery_pct10"
 FROM {0};
     """.format (table)
             # print (sql_query)
@@ -453,9 +465,9 @@ if __name__ == '__main__':
                          on='FIPS', how='left')
 
     all_data = pd.merge (all_data,
-                            smoking_data.loc[:, ['FIPS', 'total_mean_smoking_2011',
-                                                 'daily_mean_smoking_2011']],
-                            on='FIPS', how='left')
+                         smoking_data.loc[:, ['FIPS', 'total_mean_smoking_2011',
+                                              'daily_mean_smoking_2011']],
+                         on='FIPS', how='left')
 
     all_data = pd.merge (all_data, food_data, on='FIPS', how='left')
 
@@ -473,6 +485,25 @@ if __name__ == '__main__':
     # target_key = 'heart_death'
     target_key = 'stroke_hosp'
     all_data['log10_total_pop'] = np.log10 (all_data['total_pop'])
+    all_data['low_access_food_low_inc_pct10_norm'] = \
+        all_data['low_access_food_low_inc_pct10'] / all_data['low_access_food_pct10']
+    all_data['very_low_food_insec_house_pct_10_12_norm'] = \
+        all_data['very_low_food_insec_house_pct_10_12'] / all_data['low_access_food_pct10']
+    all_data['low_access_food_no_car_pct10_norm'] = \
+        all_data['low_access_food_no_car_pct10'] / all_data['low_access_food_pct10']
+    all_data['low_access_food_snr_pct10_norm'] = \
+        all_data['low_access_food_snr_pct10'] / all_data['low_access_food_pct10']
+    all_data['binge_alcohol_2011_norm'] = \
+        all_data['binge_alcohol_2011'] / all_data['any_alcohol_2011']
+    all_data['heavy_alcohol_2011_norm'] = \
+        all_data['heavy_alcohol_2011'] / all_data['any_alcohol_2011']
+    all_data['rasadh_norm'] = \
+        all_data['rasadh'] / all_data['htnadh_all']
+    all_data['diuradh_norm'] = \
+        all_data['diuradh'] / all_data['htnadh_all']
+    all_data['daily_mean_smoking_2011_norm'] = \
+        all_data['daily_mean_smoking_2011'] / all_data['total_mean_smoking_2011']
+
     all_data.to_sql ('analysis_database_stroke', engine,
                         if_exists='replace')
 
@@ -493,8 +524,23 @@ if __name__ == '__main__':
         X_stroke_indicators_cdc_imp_norm, index=X_stroke_indicators_cdc.index,
         columns=X_stroke_indicators_cdc.columns)
 
-    plt_dir = ensure_dir ('/home/rmaunu/sandbox/insight/stroke_prev/plots')
-    ml_dir = ensure_dir ('/home/rmaunu/sandbox/insight/stroke_prev/ml')
+    # Set model to use
+    model_name = 'linear_model'
+    # model_name = 'linear_lasso_model'
+    # model_name = 'linear_ridge_model'
+    # model_name = 'elasticnet_model'
+    # model_name = 'random_forest_model'
+    # model_name = 'xgboost_forest_model'
+    # model_name = 'svr_model'
+
+    # Set score system
+    score = 'r2'
+    # score = 'mean_squared_error'
+
+    plt_dir = ensure_dir ('/home/rmaunu/sandbox/insight/stroke_prev/plots_{0}'.format (
+        score))
+    ml_dir = ensure_dir ('/home/rmaunu/sandbox/insight/stroke_prev/ml_{0}'.format (
+        score))
 
     # Get train, test data
     X_train, X_test, y_train, y_test = train_test_split (
@@ -521,17 +567,7 @@ if __name__ == '__main__':
 
 
     # Set cross-validation to use
-    k_fold = KFold (len (y_train), n_folds=5, shuffle=True)
-
-    # Set model to use
-
-    # model_name = 'linear_model'
-    # model_name = 'linear_lasso_model'
-    # model_name = 'linear_ridge_model'
-    # model_name = 'elasticnet_model'
-    model_name = 'random_forest_model'
-    # model_name = 'xgboost_forest_model'
-    # model_name = 'svr_model'
+    k_fold = KFold (len (y_train), n_folds=5, shuffle=True, random_state=1000)
 
     if model_name == 'linear_model':
         ml_model = LinearRegression ()
@@ -539,63 +575,73 @@ if __name__ == '__main__':
         ml_model = Lasso ()  # alpha=0.1, R^2=0.41
         param_grid = {'alpha': np.logspace (-3, 3, 13)}
         grid_search_k_fold = GridSearchCV (ml_model, param_grid, cv=k_fold,
+                                           scoring=score,
                                            verbose=3, n_jobs=-1)
     elif model_name == 'linear_ridge_model':
         ml_model = Ridge (alpha=100)  # alpha=100, R^2=0.41
         param_grid = {'alpha': np.logspace (-3, 3, 13)}
         grid_search_k_fold = GridSearchCV (ml_model, param_grid, cv=k_fold,
+                                           scoring=score,
                                            verbose=3, n_jobs=-1)
     elif model_name == 'elasticnet_model':
         ml_model = ElasticNet ()
         param_grid = {'alpha': np.logspace (-3, 3, 13),
                       'l1_ratio': np.linspace (0, 1, 10)}
         grid_search_k_fold = GridSearchCV (ml_model, param_grid, cv=k_fold,
-                                        verbose=3, n_jobs=-1)
+                                           scoring=score,
+                                           verbose=3, n_jobs=-1)
     elif model_name == 'random_forest_model':
         ml_model = RandomForestRegressor (n_jobs=-1)  # 'n_estimators': 50, 'max_features': 'auto', 'n_jobs': -1, 'max_depth': 6, 'min_samples_leaf': 5, R^2=0.50
         param_grid = {'max_depth': [5, 6, 7, 8], 'n_estimators': [50, 75, 100, 200],
                       'min_samples_leaf': [2, 5, 10], 'n_jobs': [-1],
                       'max_features': ['auto', 'sqrt', 'log2']}
         grid_search_k_fold = RandomizedSearchCV (ml_model, param_grid, cv=k_fold,
+                                                 scoring=score,
                                                  n_iter=100, verbose=3, n_jobs=-1)
     elif model_name == 'xgboost_forest_model':
         ml_model = XGBRegressor (
             learning_rate=0.1,
             n_estimators=140,
-            max_depth=4,
-            min_child_weight=2,
-            gamma=1.e-3,
-            subsample=0.85,
-            colsample_bytree=0.55,
-            reg_alpha=1,
+            max_depth=3,
+            # min_child_weight=2,
+            min_child_weight=10,
+            gamma=0.,
+            # gamma=1.e-3,
+            subsample=0.95,
+            # subsample=0.85,
+            colsample_bytree=0.85,
+            # colsample_bytree=0.55,
+            reg_alpha=1.e-4,
+            # reg_alpha=1,
             nthread=4,
             scale_pos_weight=1)
         param_grid = {
             # 'max_depth': range (3, 10, 2),
             # 'min_child_weight': range (1, 6, 2),
             # 'max_depth': [2, 3, 4],
-            # 'min_child_weight': [2, 3, 4],
+            # 'min_child_weight': [1, 2, 3],
             # 'min_child_weight':[6, 8, 10, 12],
             # 'gamma': np.linspace (0, 0.4, 5),
             # 'subsample': np.linspace (0.6, 0.9, 4),
             # 'colsample_bytree': np.linspace (0.6, 0.9, 4),
             # 'subsample': np.linspace (0.8, 0.95, 4),
-            # 'colsample_bytree': np.linspace (0.55, 0.7, 4),
+            # 'colsample_bytree': np.linspace (0.7, 0.85, 4),
             # 'reg_alpha':[1e-5, 1e-2, 0.1, 1, 100],
             # 'reg_alpha':[0, 1e-5, 1.e-4, 1.e-3, 1e-2],
             'learning_rate': [0.01],
             'n_estimators': [1000],
         }
         grid_search_k_fold = GridSearchCV (ml_model, param_grid, cv=k_fold,
+                                           scoring=score,
                                            verbose=3, n_jobs=-1)
-        # ml_model.set_params (**grid_search_k_fold.best_params_)
 
     elif model_name == 'svr_model':
         ml_model = SVR ()
         param_grid = {'C': np.logspace (-1, 3, 13), 'epsilon': [0.1],
                       'kernel': ['rbf', 'linear']}
         grid_search_k_fold = GridSearchCV (ml_model, param_grid, cv=k_fold,
-                                        verbose=3, n_jobs=-1)
+                                           scoring=score,
+                                           verbose=3, n_jobs=-1)
 
     # # Feature selection
     # selector = RFECV (ml_model, cv=k_fold)
@@ -622,13 +668,28 @@ if __name__ == '__main__':
     fig.savefig ('{0}/corr_heatmap_selection_{1}.png'.format (plt_dir, model_name), transparent=False)
 
     if model_name == 'linear_model':
-        cv_model = cross_val_score (ml_model, X_train_selection, y_train, cv=k_fold)
+        cv_model = cross_val_score (ml_model, X_train_selection, y_train,
+                                    scoring=score,
+                                    cv=k_fold)
         save (cv_model, '{0}/cv_{1}.pickle'.format (ml_dir, model_name))
-        print ('CV R^2 score: {0} +/- {1}'.format (cv_model.mean (), cv_model.std ()))
+
+        if score == 'r2':
+            print ('CV R^2 score: {0} +/- {1}'.format (cv_model.mean (),
+                                                       cv_model.std ()))
+        else:
+            print ('CV RMSE score: {0} +/- {1}'.format (np.sqrt (-cv_model.mean ()),
+                                                        cv_model.std () / (2. * np.sqrt (-cv_model.mean ()))
+                                                        )
+                   )
 
         ml_model.fit (X_train_selection, y_train)
-        print ('Test sample R^2 score: {0}'.format (
-            ml_model.score (X_test_selection, y_test)))
+        if score == 'r2':
+            print ('Test sample R^2 score: {0}'.format (
+                ml_model.score (X_test_selection, y_test)))
+        else:
+            y_pred = ml_model.predict (X_test_selection)
+            print ('Test sample RMSE score: {0}'.format (
+                np.sqrt (mean_squared_error (y_test, y_pred))))
     else:
         grid_search_k_fold.fit (X_train_selection, y_train)
         save (grid_search_k_fold, '{0}/grid_search_{1}.pickle'.format (ml_dir, model_name))
@@ -636,13 +697,27 @@ if __name__ == '__main__':
         # Train the final model
         print ('Best grid search score:', grid_search_k_fold.best_score_)
         ml_model.set_params (**grid_search_k_fold.best_params_)
-        cv_model = cross_val_score (ml_model, X_train_selection, y_train, cv=k_fold)
-        print ('CV R^2 score: {0} +/- {1}'.format (cv_model.mean (), cv_model.std ()))
+        cv_model = cross_val_score (ml_model, X_train_selection, y_train,
+                                    scoring=score,
+                                    cv=k_fold)
+        if score == 'r2':
+            print ('CV R^2 score: {0} +/- {1}'.format (cv_model.mean (),
+                                                       cv_model.std ()))
+        else:
+            print ('CV RMSE score: {0} +/- {1}'.format (np.sqrt (-cv_model.mean ()),
+                                                        cv_model.std () / (2. * np.sqrt (-cv_model.mean ()))
+                                                        )
+                   )
 
         print ('Fitting with best model parameters:', grid_search_k_fold.best_params_)
         ml_model.fit (X_train_selection, y_train)
-        print ('Test sample R^2 score: {0}'.format (
-            ml_model.score (X_test_selection, y_test)))
+        if score == 'r2':
+            print ('Test sample R^2 score: {0}'.format (
+                ml_model.score (X_test_selection, y_test)))
+        else:
+            y_pred = ml_model.predict (X_test_selection)
+            print ('Test sample RMSE score: {0}'.format (
+                np.sqrt (mean_squared_error (y_test, y_pred))))
 
     fig = plt.figure ()
     ax = fig.add_subplot (111)

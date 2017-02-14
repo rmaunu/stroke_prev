@@ -28,7 +28,7 @@ features_key = {
     'perc_hisp': 'Hispanic (%)',
     'perc_65up': '65yr or older (%)',
     'total_pop': 'Total Population',
-    'log10_total_pop': 'log_10 (Total Population)',
+    'log10_total_pop': 'Total Population',
     'airqual': 'Air Quality PM2.5',
     'PARKS': 'Percentage of Population Living Within Half a Mile of a Park',
     'sev_housing': 'Percentage of Households Living with Severe Housing Problems, 2008-2012',
@@ -46,7 +46,7 @@ features_key = {
     'stg_rehab': 'Hospitals with Cardiac-Rehabilitation Unit',
     'stg_emerg': 'Hospitals with Emergency Department',
     'stg_neuro': 'Hospitals with Neurological Sevices',
-    'pharmpc': 'Pharmacies and Drug-Stores',
+    'pharmpc': 'Pharmacies and Drug-Stores (per 100,000)',
     'prim_dr': 'Population per Primary-Care Physician',
     'cvd_dr': 'Population per Cardiovascular Disease Physician',
     'neuro_dr': 'Population per Neurologist',
@@ -64,6 +64,8 @@ features_key = {
     'cor_heart_dis_death': 'Coronary Heart Disease Mortality Rate (per 100000)',
     'hyperten_death': 'Hypertension Mortality Rate (per 100000)',
     'acute_myocard_infarc_death': 'Acute Myocardial Infarction Mortality Rate (per 100000)',
+    'any_alcohol_2011': 'Prevalence of Any Drinking (%)',
+    'binge_alcohol_2011': 'Prevalence of Binge Drinking (%)',
     'heavy_alcohol_2011': 'Prevalence of Heavy Drinking (%)',
     'total_mean_smoking_2011': 'Total Smoking Prevalence (%)',
     'daily_mean_smoking_2011': 'Daily Smoking Prevalence (%)',
@@ -73,8 +75,216 @@ features_key = {
     'ers_nat_amenity_index_1999': 'ERS natural amenity index (1999)',
     'food_insec_house_pct_10_12': 'Household Food Insecurity (%, 2010-2012)',
     'low_access_food_pct10': 'Population, low access to store (%, 2010)',
-    'low_access_grocery_pct10': 'Population, low access to grocery store (%, 2010)'
+    'low_access_grocery_pct10': 'Grocery Stores (per 1000, 2010)',
+    'grocery_pct10': 'Grocery Stores (per 1000, 2010)',
+    'low_access_food_low_inc_pct10_norm': 'Fraction low access to store, low income (2010)',
+    'low_access_food_snr_pct10_norm': 'Fraction low access to store, seniors (2010)',
+    'daily_mean_smoking_2011_norm': 'Fraction of smokers, daily (2011)',
+    'binge_alcohol_2011_norm': 'Fraction of drinking, binge (2011)',
+    'heavy_alcohol_2011_norm': 'Fraction of drinking, heavy (2011)',
+    'diuradh_norm': 'Fraction of BLMN, Diuretic',
+    'rasadh_norm': 'Fraction of BLMN, Renin-Angiotensin System Antagonist',
 }
+
+CDC_SKIP_COLS = ['FIPS', 'County', 'State',  # Labels
+                 'perc_white', 'perc_black', 'perc_api', 'perc_aian', 'perc_hisp',  # Demographics
+                 'htnadh_white', 'htnadh_black', 'htnadh_api', 'htnadh_aian', 'htnadh_hisp',  # Not enough adherence data
+                 'stg_hosp', 'stg_int_cr', 'stg_rehab', 'stg_emerg', 'stg_neuro',  # Not enough clinic data
+                 'cvd_dr', 'neuro_dr', 'surg_dr',
+                 'stroke_death', 'all_heart_dis_death', 'cor_heart_dis_death',  # Skip correlated heart diseases for now
+                 'hyperten_death', 'acute_myocard_infarc_death',
+                 'stroke_hosp', 'all_heart_dis_hosp', 'card_dysrhythm_hosp'
+                 'cor_heart_dis_hosp', 'hyperten_hosp',
+                 'acute_myocard_infarc_hosp',
+                 ]
+
+
+def get_db_connection (dbname, username,
+                       password=None,
+                       host='/var/run/postgresql'):
+    """
+    Get the SQL database connection.
+
+    :type   dbname: str
+    :param  dbname: Name of the database
+
+    :type   username: str
+    :param  username: username to access database
+
+    :type   password: str
+    :param  password: password to access database (default: None)
+
+    :type   host: str
+    :param  host: host of the database
+        (default: '/var/run/postgresql', local PostgreSQL)
+
+    :return: `psycopg2` connection
+    """
+
+    con = psycopg2.connect(
+        database=dbname, user=username, password=password,
+        host='/var/run/postgresql')
+    return (con)
+
+
+def get_cdc_data (connection, primary_tablename, primary_val_name,
+                  join_tablenames=[],
+                  join_ons=[],
+                  join_val_names=[]):
+    """
+    Get CDC data from the SQL database.
+
+    :type   connection: database connection (e.g. `psycopg2`)
+    :param  connection: A connection to an SQL database.
+
+    :type   primary_tablename: str
+    :param  primary_tablename: Name of the table to open.
+
+    :type   primary_val_name: str
+    :param  primary_val_name: Name to rename `Value` in the primary table to.
+
+    :type   join_tablenames: list
+    :param  join_tablenames: List of tables to left-join with the primary table
+
+    :type   join_ons: list of tuples
+    :param  join_ons: list of column pairs which should be equal. First value of
+        the tuple is the primary table column, second the join table value.
+
+    :type   join_val_names: list
+    :param  join_val_names: list of names to convert the 'Value' column to
+
+    :return: `pandas.DataFrame` of the data
+    """
+
+    # build query
+    sql_query = 'SELECT {0}.*'.format (primary_tablename)
+    for t, name in izip (join_tablenames, join_val_names):
+        sql_query += ', {0}."Value" AS {1}'.format (t, name)
+    sql_query += ' FROM {0}'.format (primary_tablename)
+    for t, join in izip (join_tablenames, join_ons):
+        sql_query += ' LEFT JOIN {0} ON {1}.{2}={0}.{3}'.format (
+            t, primary_tablename, join[0], join[1])
+    sql_query += ';'
+    # print (sql_query)
+    data = pd.read_sql_query(sql_query, con, index_col='index')
+
+    # Standardize FIPS label
+    data = data.rename (columns={
+        'cnty_fips': 'FIPS', 'Value': primary_val_name
+    })
+    data['FIPS'] =  data['FIPS'].apply (lambda x: str(x).zfill (5))
+
+    # Make -1's nan's (CDC data not available values)
+    data.where (data != -1, other=np.nan, inplace=True)
+    return (data)
+
+
+def get_ihme_alcohol_data (connection):
+    """
+    Get IHME data from the SQL database.
+
+    :type   connection: database connection (e.g. `psycopg2`)
+    :param  connection: A connection to an SQL database.
+
+    :return: `pandas.DataFrame` of the data
+    """
+
+    alcohol_tables = ['any', 'heavy', 'binge']
+
+    # build query
+    for table in alcohol_tables:
+        sql_query = """
+SELECT "index", "FIPS", "State", "County", "2011 Both Sexes" AS "{0}_alcohol_2011"
+    FROM ihme_alcohol_use_{0}_2002_2012_y2015m04d23;
+        """.format (table)
+        # print (sql_query)
+        if table == alcohol_tables[0]:
+            data = pd.read_sql_query(sql_query, con, index_col='index')
+            data.where ((pd.notnull (data)), other=np.nan, inplace=True)
+            data = data.dropna (subset=['FIPS'])
+            data['FIPS'] =  data['FIPS'].apply (lambda x: str(x).zfill (5))
+        else:
+            data_tmp = pd.read_sql_query(sql_query, con, index_col='index')
+            data_tmp.where ((pd.notnull (data_tmp)), other=np.nan, inplace=True)
+            data_tmp['FIPS'] =  data_tmp['FIPS'].apply (lambda x: str(x).zfill (5))
+            data = pd.merge (data,
+                             data_tmp[['FIPS', '{0}_alcohol_2011'.format (table)]],
+                             on="FIPS", how="left")
+
+    # Make -1's nan's (CDC data not available values)
+    return (data)
+
+
+def get_ihme_smoking_data (connection):
+    """
+    Get IHME data from the SQL database.
+
+    :type   connection: database connection (e.g. `psycopg2`)
+    :param  connection: A connection to an SQL database.
+
+    :return: `pandas.DataFrame` of the data
+    """
+
+    sql_query = """
+SELECT "index", "FIPS", "state", "county", "year", "sex", "total_mean" AS "total_mean_smoking_2011",
+"daily_mean" AS "daily_mean_smoking_2011"
+FROM ihme_us_county_total_and_daily_smoking_prevalence_1996_2012;
+    """
+    # print (sql_query)
+
+    data = pd.read_sql_query(sql_query, con, index_col='index')
+    data = data.loc[data['year'] == 2011, :]
+    data = data.loc[data['sex'] == 'Both', :]
+    data.where ((pd.notnull (data)), other=np.nan, inplace=True)
+    data = data.dropna (subset=['FIPS'])
+    data['FIPS'] =  data['FIPS'].apply (lambda x: str(x).zfill (5))
+
+    # Make -1's nan's (CDC data not available values)
+    return (data)
+
+
+def get_usda_food_data (connection):
+    """
+    Get IHME data from the SQL database.
+
+    :type   connection: database connection (e.g. `psycopg2`)
+    :param  connection: A connection to an SQL database.
+
+    :return: `pandas.DataFrame` of the data
+    """
+
+    tables = ['usda_food_access_feb2014', 'usda_food_assistance_feb2014',
+              'usda_food_health_feb2014', 'usda_food_insecurity_feb2014',
+              'usda_food_stores_feb2014']
+
+    for table in tables:
+        if table == tables[0]:
+            sql_query = """
+SELECT "FIPS",
+"PCT_LACCESS_POP10" AS "low_access_food_pct10",
+"PCT_LACCESS_LOWI10" AS "low_access_food_low_inc_pct10",
+"PCT_LACCESS_SENIORS10" AS "low_access_food_snr_pct10",
+"PCT_LACCESS_HHNV10" AS "low_access_food_no_car_pct10"
+FROM {0};
+    """.format (table)
+            # print (sql_query)
+        elif table == tables[1]:
+            sql_query = """
+SELECT "FIPS",
+"REDEMP_SNAPS12" AS "snap_redemp_per_store_2012"
+FROM {0};
+    """.format (table)
+            # print (sql_query)
+        elif table == tables[2]:
+            sql_query = """
+SELECT "FIPS",
+"PCT_DIABETES_ADULTS10" AS "pct_diabetes_adults_2010",
+"PCT_OBESE_ADULTS13" AS "pct_obese_adults_2013",
+"RECFACPTH12" AS "rec_fac_2012",
+"NATAMEN" AS "ers_nat_amenity_index_1999"
+FROM {0};
+    """.format (table)
+            # print (sql_query)
 
 def strip_county_formatting (county):
     return (county.replace ('-', ' ').replace ("'", "").replace (
